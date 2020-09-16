@@ -41,6 +41,11 @@ int main(int argc, char* argv[]) {
         ShowUsage(argv[0]);
         return 1;
     }
+    // set rolling friction model
+    float rolling_friction_ceofficient = 0.3f;
+    params.rolling_friction_coeffS2S = rolling_friction_ceofficient;
+    params.rolling_friction_coeffS2W = rolling_friction_ceofficient;
+    params.rolling_friction_coeffS2M = rolling_friction_ceofficient;
 
     float iteration_step = params.step_size;
 
@@ -53,7 +58,7 @@ int main(int argc, char* argv[]) {
     std::vector<ChVector<float>> point_vels;
     std::vector<ChVector<float>> point_ang_vels;
     ChVector<float> only_point(1.f, -1.f, 1.0f*params.sphere_radius-0.1f);
-    ChVector<float> only_point_vel(1.f, 0.0f, 0.0f);
+    ChVector<float> only_point_vel(.1f, 0.0f, 0.0f);
     ChVector<float> only_point_ang_vel(0.f, 0.0f, 0.0f);
     body_points.push_back(only_point);
     point_vels.push_back(only_point_vel);
@@ -97,6 +102,12 @@ int main(int argc, char* argv[]) {
     gran_sys.set_static_friction_coeff_SPH2SPH(params.static_friction_coeffS2S);
     gran_sys.set_static_friction_coeff_SPH2WALL(params.static_friction_coeffS2W);
     gran_sys.set_static_friction_coeff_SPH2MESH(params.static_friction_coeffS2M);
+
+	// set rolling friction model
+	gran_sys.set_rolling_mode(GRAN_ROLLING_MODE::SCHWARTZ);
+	gran_sys.set_rolling_coeff_SPH2SPH(params.rolling_friction_coeffS2S);
+	gran_sys.set_rolling_coeff_SPH2WALL(params.rolling_friction_coeffS2W);
+    gran_sys.set_rolling_coeff_SPH2MESH(params.rolling_friction_coeffS2M);
 
     gran_sys.setOutputFlags(GRAN_OUTPUT_FLAGS::ABSV | GRAN_OUTPUT_FLAGS::ANG_VEL_COMPONENTS | GRAN_OUTPUT_FLAGS::VEL_COMPONENTS);
     std::string mesh_filename("data/one_facet.obj");
@@ -163,7 +174,13 @@ int main(int argc, char* argv[]) {
         }
 
         pos = apiSMC_TriMesh.getPosition(0);
-        printf("particle position: %f, %f, %f\n", pos.x(), pos.y(), pos.z());
+        printf("position: %f, %f, %f, ", pos.x(), pos.y(), pos.z());
+        velo = apiSMC_TriMesh.getVelo(0);
+        printf("velocity: %f, %f, %f, ", velo.x(), velo.y(), velo.z());
+        omega = apiSMC_TriMesh.getAngularVelo(0);
+        printf("angular velocity: %f, %f, %f\n", omega.x(), omega.y(), omega.z());
+        
+
 
         counter++;
     }

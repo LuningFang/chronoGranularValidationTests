@@ -48,8 +48,8 @@ int main(int argc, char* argv[]) {
     params.box_Z = 8 * params.sphere_radius;
 
     // rolling friction coefficient
-    params.rolling_friction_coeffS2S = 0.0f;
-    params.rolling_friction_coeffS2W = 0.0f;
+    params.rolling_friction_coeffS2S = 0.1f;
+    params.rolling_friction_coeffS2W = 0.1f;
     
   // Setup simulation
     ChSystemGranularSMC gran_sys(params.sphere_radius, params.sphere_density,
@@ -139,7 +139,9 @@ int main(int argc, char* argv[]) {
     float Fr_diff = 1E3;
 
 	printf("time, ball_px, ball_pz, vel_x, vel_z, omega.y\n");
-	while (curr_time < params.time_end && Fr_diff > Fr_threshold) {
+//	while (curr_time < params.time_end && Fr_diff > Fr_threshold) {
+	while (curr_time < params.time_end) {
+
         gran_sys.advance_simulation(params.step_size);
         curr_time += params.step_size;
 
@@ -153,7 +155,7 @@ int main(int argc, char* argv[]) {
         if (std::abs(omega.y()) > 1E-8)
             ratio = std::abs(velo.x()/omega.y());
 
-        printf("%f, %f, %f, %f, %f, %f, ratio = %f, force = %f, %f, %f\n", curr_time, pos.x(), pos.z(), velo.x(), velo.z(), omega.y(), ratio, reaction_force[0], reaction_force[1], reaction_force[2]);
+        printf("%f, %f, %f, %e, %e, %e, ratio = %f, force = %e, %e, %e\n", curr_time, pos.x(), pos.z(), velo.x(), velo.z(), omega.y(), ratio, reaction_force[0], reaction_force[1], reaction_force[2]);
 
 		}
 

@@ -17,6 +17,7 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <ctime>
 #include "chrono_thirdparty/filesystem/path.h"
 #include "chrono_granular/api/ChApiGranularChrono.h"
 #include "chrono_granular/physics/ChGranular.h"
@@ -242,7 +243,9 @@ int main(int argc, char* argv[]) {
 
     char filename[100];
     int currframe = 1;
-    while (curr_time < time_end) {
+    clock_t start = std::clock();
+
+	while (curr_time < time_end) {
 //        write position info
         sprintf(filename, "%s/step%06d", output_dir.c_str(), currframe);
         gran_sys.writeFile(std::string(filename));
@@ -273,6 +276,9 @@ int main(int argc, char* argv[]) {
 
 
     }
-
+	
+	clock_t end_time = std::clock();
+	double computation_time = ((double)(end_time - start)) / CLOCKS_PER_SEC;
+	std::cout << "Time: " << computation_time << " seconds" << std::endl;
     return 0;
 }

@@ -231,11 +231,13 @@ int main(int argc, char* argv[]) {
             writeMeshFrames(outstream, *ball_body, mesh_filename, ball_radius);
             meshfile << outstream.str();
             */
-        }
         KE = getSystemKE(params, apiSMC, numSpheres);
 
         std::cout << "time = " << t << ", KE = " << KE * 1E-5 << std::endl;
 
+
+		
+		}
     }
 
     clock_t end = std::clock();

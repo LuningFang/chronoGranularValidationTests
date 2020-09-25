@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
     float adhesion_ratio = 0.0f;
 
     // damping parameters
-    float gamma_n = 1e4 * std::sqrt(sphere_radius);
+    float gamma_n = 1e5 * std::sqrt(sphere_radius);
     float gamma_t = 1e2;
 
     // friction coefficient
@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
     float mu_s_s2w = 0.2f;
 
     // rolling friction coefficient
-    float mu_r = 0.2f;
+    float mu_r = 0.0f;
     
     float sigma = (1 - std::pow(nu,2))/YoungsModulus;
     float Kn_s2s = 4.0f/(6.0f * sigma) * std::sqrt(sphere_radius/2.0f) * std::sqrt(sphere_radius);
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
 
     // time integrator
     float step_size = 3e-5;
-    float time_end = 1.0f;
+    float time_end = 3.0f;
 
     // setup simulation gran_sys
     ChSystemGranularSMC gran_sys(sphere_radius, sphere_density,
@@ -206,9 +206,9 @@ int main(int argc, char* argv[]) {
 
 
     // rolling friction model
-    // gran_sys.set_rolling_mode(GRAN_ROLLING_MODE::SCHWARTZ);
-    // gran_sys.set_rolling_coeff_SPH2SPH(mu_r);
-    // gran_sys.set_rolling_coeff_SPH2WALL(mu_r);
+    gran_sys.set_rolling_mode(GRAN_ROLLING_MODE::SCHWARTZ);
+    gran_sys.set_rolling_coeff_SPH2SPH(mu_r);
+    gran_sys.set_rolling_coeff_SPH2WALL(mu_r);
 
 
     gran_sys.set_Cohesion_ratio(cohesion_ratio);

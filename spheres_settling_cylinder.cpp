@@ -37,8 +37,7 @@ float L_CGS_TO_SI = 1e-2;
 
 // Show command line usage
 void ShowUsage(std::string name) {
-    std::cout << "usage: " + name + " <json_file>" + " <input position file> " << std::endl;
-    std::cout << "OR " + name + " <json_file>" << std::endl;
+    std::cout << "usage: " + name + " <particle radius> " + " <gamma_n> " + " <gamma_t> "<< std::endl;
 }
 
 // check step size, delta t ~ sqrt(m/k)
@@ -88,8 +87,18 @@ float getTotalGraivty(float grav_Z, float rad, float density, int numSpheres){
 
 int main(int argc, char* argv[]) {
 
+    if (argc != 4) {
+        ShowUsage(argv[0]);
+        return 1;
+    }
+
+
     // sphere parameters
-    float sphere_radius = 0.3;
+    float sphere_radius = std::stof(argv[1]);
+    // damping parameters
+    float gamma_n = std::stof(argv[2]);
+    float gamma_t = std::stof(argv[3]);
+
 
     // box dim
     float box_X = 10.0f;
@@ -99,19 +108,19 @@ int main(int argc, char* argv[]) {
 
     // material based parameter
     float sphere_density = 7.8;
-    float YoungsModulus = 2e9;
+    float YoungsModulus = 2e8;
     float nu = 0.28f;
     float COR = 0.6f;
     float cohesion_ratio = 0.0f;
     float adhesion_ratio = 0.0f;
 
-    // damping parameters
-    float gamma_n = 1e4;
-    float gamma_t = 1e6;
 
     // friction coefficient
     float mu_s_s2s = 0.1;
     float mu_s_s2w = 0.2f;
+
+    // rolling friction coefficient
+    float mu_r = 0.2f;
     
     float sigma = (1 - std::pow(nu,2))/YoungsModulus;
     float Kn_s2s = 4.0f/(6.0f * sigma) * std::sqrt(sphere_radius/2.0f) * std::sqrt(sphere_radius);
@@ -123,8 +132,8 @@ int main(int argc, char* argv[]) {
     float grav_Z = -980.0f;
 
     // time integrator
-    float step_size = 1e-5;
-    float time_end = 5.0f;
+    float step_size = 1e-6;
+    float time_end = 2.0f;
 
     // setup simulation gran_sys
     ChSystemGranularSMC gran_sys(sphere_radius, sphere_density,
@@ -137,7 +146,7 @@ int main(int argc, char* argv[]) {
 
     // create cylinder boundary
     float cyl_center[3] = {0.0f, 0.0f, 0.0f};
-    float cyl_rad = std::min(box_X, box_Y)/2.0f * 0.95;
+    float cyl_rad = std::min(box_X, box_Y)/2.0f - sphere_radius;
     size_t cyl_id = gran_sys.Create_BC_Cyl_Z(cyl_center, cyl_rad, false, true);
 
     // create bootom plate to collect force (can not overlap with big boundary)
@@ -151,19 +160,33 @@ int main(int argc, char* argv[]) {
 
     // randomize by layer
     ChVector<float> center(0.0f, 0.0f, -box_Z/2 + 2 * sphere_radius);
+    int numPointsPerLayer = 0;
     // fill up each layer
-    while (center.z() + sphere_radius < box_Z/2 - 2 * sphere_radius){
-        auto points = sampler.SampleCylinderZ(center, cyl_rad, 0);
+    while (center.z() + sphere_radius < box_Z/2 - 2*sphere_radius){
+        auto points = sampler.SampleCylinderZ(center, cyl_rad-sphere_radius, 0);
+        numPointsPerLayer = points.size();
         initialPos.insert(initialPos.end(), points.begin(), points.end());
         center.z() += 2.1 * sphere_radius;
     }
 
     int numSpheres = initialPos.size();
-    
-    apiSMC.setElemsPositions(initialPos);
+
+    // initial velocity vector
+    ChVector<float> defaultVelocityVal(0.0f, 0.0f, 0.0f);
+    std::vector<ChVector<float>> initialVelo(numSpheres, defaultVelocityVal);
+    for (int i = 0; i < numPointsPerLayer; i++){
+        ChVector<float> pos = initialPos.at(i);
+        ChVector<float> velo;
+        velo.x() = -pos.x()/cyl_rad * 0.1f;
+        velo.y() = -pos.y()/cyl_rad * 0.1f;
+        velo.z() = 0.0f;        
+        initialVelo.at(i) = velo;
+    }
+
+    apiSMC.setElemsPositions(initialPos, initialVelo);
 
     float psi_T = 32.0f;
-    float psi_L = 16.0f;
+    float psi_L = 256.0f;
     gran_sys.setPsiFactors(psi_T, psi_L);
 
 
@@ -183,14 +206,23 @@ int main(int argc, char* argv[]) {
     gran_sys.set_static_friction_coeff_SPH2SPH(mu_s_s2s);
     gran_sys.set_static_friction_coeff_SPH2WALL(mu_s_s2w);
 
+    // rolling friction model
+    // gran_sys.set_rolling_mode(GRAN_ROLLING_MODE::SCHWARTZ);
+    // gran_sys.set_rolling_coeff_SPH2SPH(mu_r);
+    // gran_sys.set_rolling_coeff_SPH2WALL(mu_r);
+
+
     gran_sys.set_Cohesion_ratio(cohesion_ratio);
     gran_sys.set_Adhesion_ratio_S2W(adhesion_ratio);
     gran_sys.set_gravitational_acceleration(grav_X, grav_Y, grav_Z);
+
+    
 
     // Set the position of the BD
     gran_sys.set_BD_Fixed(true);
     gran_sys.set_timeIntegrator(GRAN_TIME_INTEGRATOR::FORWARD_EULER);
     gran_sys.set_fixed_stepSize(step_size);
+
 
     gran_sys.initialize();
     
@@ -203,30 +235,43 @@ int main(int argc, char* argv[]) {
     float target_fz;
     float total_fz;
     // print out stepsize
-    float print_time_step = 1000.0f * step_size;
-     
+    float print_time_step = 300.0f * step_size;
+
+    string output_dir = "settling_cylinder";
+    filesystem::create_directory(filesystem::path(output_dir));
+
+    char filename[100];
+    int currframe = 1;
     while (curr_time < time_end) {
+//        write position info
+        sprintf(filename, "%s/step%06d", output_dir.c_str(), currframe);
+        gran_sys.writeFile(std::string(filename));
+        currframe ++;
 
         printf("t = %.4f", curr_time);
         gran_sys.advance_simulation(print_time_step);
         curr_time += print_time_step;
 
         sysKE = getSystemKE(sphere_radius, sphere_density, apiSMC, numSpheres);
-        std::cout << ", system KE: " << sysKE;
+        std::cout << ", system KE: " << sysKE << " J";
 
         gran_sys.getBCReactionForces(cyl_id, cyl_reaction_force);
-        std::cout << ", cyl wall: " << cyl_reaction_force[0] * F_CGS_TO_SI << ", " << cyl_reaction_force[1] * F_CGS_TO_SI << ", " << cyl_reaction_force[2] * F_CGS_TO_SI;
+        // std::cout << ", cyl wall: " << cyl_reaction_force[0] * F_CGS_TO_SI << ", " << cyl_reaction_force[1] * F_CGS_TO_SI << ", " << cyl_reaction_force[2] * F_CGS_TO_SI;
 
         gran_sys.getBCReactionForces(plate_id, plane_reaction_force);
-        std::cout << ", bottom plate: " << plane_reaction_force[0] * F_CGS_TO_SI << ", " << plane_reaction_force[1] * F_CGS_TO_SI << ", " << plane_reaction_force[2] * F_CGS_TO_SI;
+        // std::cout << ", bottom plate: " << plane_reaction_force[0] * F_CGS_TO_SI << ", " << plane_reaction_force[1] * F_CGS_TO_SI << ", " << plane_reaction_force[2] * F_CGS_TO_SI;
 
         total_fz = (cyl_reaction_force[2] + plane_reaction_force[2]) * F_CGS_TO_SI;
 
-        std::cout << ", total fz: " << total_fz;
+        printf(", total fz: %e N", total_fz);
         target_fz = getTotalGraivty(grav_Z, sphere_radius, sphere_density, numSpheres);
-        std::cout << ", " << "target fz: " << target_fz;
+        std::cout << ", " << "target fz: " << target_fz << " N";
 
         std::cout << "\n";
+        
+
+
+
     }
 
     return 0;

@@ -11,9 +11,7 @@
 // =============================================================================
 // Authors: Luning Fang
 // =============================================================================
-// validation test of one single sphere rolling on a plane boundary condition 
-// with initial velocity without rolling friction. At steady state, sphere rolls 
-// with v = omega * radius.
+// validation test: single sphere rolling on a plane modeled as a planeBC
 // =============================================================================
 
 #include <cmath>
@@ -43,13 +41,15 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // big domain dimension
     params.box_X = 100;
     params.box_Y = 100;
     params.box_Z = 8 * params.sphere_radius;
 
     // rolling friction coefficient
-    params.rolling_friction_coeffS2S = 0.1f;
-    params.rolling_friction_coeffS2W = 0.1f;
+    float rolling_fric_coeff = 0.1f;
+    params.rolling_friction_coeffS2S = rolling_fric_coeff;
+    params.rolling_friction_coeffS2W = rolling_fric_coeff;
     
   // Setup simulation
     ChSystemGranularSMC gran_sys(params.sphere_radius, params.sphere_density,
@@ -57,6 +57,24 @@ int main(int argc, char* argv[]) {
 
     ChGranularSMC_API apiSMC;
     apiSMC.setGranSystem(&gran_sys);
+
+    // create plane BC at the bottom of BD
+    float plane_pos[3] = {0.0f, 0.0f, -3*params.sphere_radius};
+    float plane_normal[3] = {0.0f, 0.0f, 1.0f};
+    size_t plane_bc_id = gran_sys.Create_BC_Plane(plane_pos, plane_normal, true);
+
+    // calcuate settled position to make sure sphere barely touching the planeBC
+	double mass = 4.0/3.0 * CH_C_PI * pow(params.sphere_radius,3) * params.sphere_density;
+	double penetration = pow(mass * abs(params.grav_Z) / params.normalStiffS2S * std::sqrt(params.sphere_radius), 2.0/3.0);
+	double settled_pos = -3*params.sphere_radius + params.sphere_radius - penetration;
+
+    // assign initial condition for the sphere
+    float initialVelo = 0.5f;
+    std::vector<ChVector<float>> body_point;
+	body_point.push_back(ChVector<float>(-3.0f, -4.0f, settled_pos));
+	std::vector<ChVector<float>> velocity;
+	velocity.push_back(ChVector<float>(initialVelo, 0.0f, 0.0f));
+    apiSMC.setElemsPositions(body_point, velocity);
 
 	gran_sys.setPsiFactors(params.psi_T, params.psi_L);
 
@@ -66,18 +84,6 @@ int main(int argc, char* argv[]) {
     gran_sys.set_Gamma_n_SPH2SPH(params.normalDampS2S);
     gran_sys.set_Gamma_n_SPH2WALL(params.normalDampS2W);
 
-    // create plane BC at the bottom of BD
-    float plane_pos[3] = {0.0f, 0.0f, -3*params.sphere_radius};
-    float plane_normal[3] = {0.0f, 0.0f, 1.0f};
-    size_t plane_bc_id = gran_sys.Create_BC_Plane(plane_pos, plane_normal, true);
-
-	double mass = 4.0/3.0 * CH_C_PI * pow(params.sphere_radius,3) * params.sphere_density;
-	double penetration = pow(mass * abs(params.grav_Z) / params.normalStiffS2S, 2.0/3.0);
-	
-	double settled_pos = -3*params.sphere_radius + params.sphere_radius - penetration;
-
-	printf("analytical settled position is:%e\n", settled_pos);
-		
 	// set tangential force model
 	gran_sys.set_K_t_SPH2SPH(params.tangentStiffS2S);		
 	gran_sys.set_K_t_SPH2WALL(params.tangentStiffS2W);
@@ -85,14 +91,17 @@ int main(int argc, char* argv[]) {
 	gran_sys.set_Gamma_t_SPH2WALL(params.tangentDampS2W);
 	gran_sys.set_static_friction_coeff_SPH2SPH(params.static_friction_coeffS2S);
 	gran_sys.set_static_friction_coeff_SPH2WALL(params.static_friction_coeffS2W);
+    gran_sys.set_friction_mode(GRAN_FRICTION_MODE::MULTI_STEP);
 
 
+    // set cohesion and adhesion model
 	gran_sys.set_Cohesion_ratio(params.cohesion_ratio);
     gran_sys.set_Adhesion_ratio_S2W(params.adhesion_ratio_s2w);
+
+    // set gravity
     gran_sys.set_gravitational_acceleration(params.grav_X, params.grav_Y, params.grav_Z);
 
    
-	gran_sys.set_friction_mode(GRAN_FRICTION_MODE::MULTI_STEP);
 	gran_sys.set_timeIntegrator(GRAN_TIME_INTEGRATOR::CHUNG);
 
 	// set rolling friction model
@@ -100,19 +109,9 @@ int main(int argc, char* argv[]) {
 	gran_sys.set_rolling_coeff_SPH2SPH(params.rolling_friction_coeffS2S);
 	gran_sys.set_rolling_coeff_SPH2WALL(params.rolling_friction_coeffS2W);
 
-
-
-    std::vector<ChVector<float>> body_points;
-	body_points.push_back(ChVector<float>(0, 0, settled_pos));
-
-	std::vector<ChVector<float>> velocity;
-	velocity.push_back(ChVector<float>(2.0, 0.0, 0.0));
-
-
-    apiSMC.setElemsPositions(body_points, velocity);
-
+    // set time integrator
     gran_sys.set_fixed_stepSize(params.step_size);
-	gran_sys.setRecordingContactInfo(true);
+    gran_sys.set_timeIntegrator(GRAN_TIME_INTEGRATOR::CENTERED_DIFFERENCE);
 
 
     gran_sys.set_BD_Fixed(true);
@@ -155,11 +154,11 @@ int main(int argc, char* argv[]) {
         if (std::abs(omega.y()) > 1E-8)
             ratio = std::abs(velo.x()/omega.y());
 
-        printf("%f, %f, %f, %e, %e, %e, ratio = %f, force = %e, %e, %e\n", curr_time, pos.x(), pos.z(), velo.x(), velo.z(), omega.y(), ratio, reaction_force[0], reaction_force[1], reaction_force[2]);
+        // printf("%e, %e, %e, %e, %e, %e, %e, %e, %e\n", curr_time, pos.x(), pos.z(), velo.x(), velo.z(), omega.y(), reaction_force[0], reaction_force[1], reaction_force[2]);
 
 		}
 
-    printf("mass = %f, normal force = %f, sliding friction force = %f\n", mass, weight, slidingFr);
+    // printf("mass = %f, normal force = %f, sliding friction force = %f\n", mass, weight, slidingFr);
 
     return 0;
 }

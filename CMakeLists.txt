@@ -13,8 +13,9 @@ set(DEMOS
 				sphere_sliding
 				sphere_sliding_mesh
 				cylinder_compress
-				bouncy_ball
         spheres_settling_cylinder
+        spheres_settling_box
+        balldrop_settling
 				)
 
 #--------------------------------------------------------------
@@ -104,3 +105,11 @@ if (CHRONO_VEHICLE_FOUND)
     add_subdirectory(HMMWV)
 endif()
 
+#--------------------------------------------------------------
+# Copy data directory to Build tree
+#--------------------------------------------------------------
+if(MSVC OR XCODE_VERSION)
+    file(COPY ${CMAKE_SOURCE_DIR}/data/ DESTINATION ${CMAKE_BINARY_DIR}/bin/data/)
+else()
+    file(COPY ${CMAKE_SOURCE_DIR}/data/ DESTINATION ${CMAKE_BINARY_DIR}/data/)
+endif()

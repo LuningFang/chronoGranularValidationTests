@@ -1,0 +1,31 @@
+{
+	"sphere_radius": 0.5,
+	"sphere_density": 2.5,
+	"box_X": 20,
+	"box_Y": 20 ,
+	"box_Z": 20,
+	"step_size": 1e-4,
+	"time_end": 10,
+	"grav_X": 0,
+	"grav_Y": 0,
+	"grav_Z": -980,
+	"normalStiffS2S": 1e4,
+	"normalStiffS2W": 1e4,
+	"normalDampS2S": 1e2,
+	"normalDampS2W": 1e2,
+	"tangentStiffS2S" : 2e4,
+	"tangentStiffS2W" : 1e4, 
+	"tangentDampS2S": 10,
+	"tangentDampS2W": 10,
+	"cohesion_ratio": 0,
+	"adhesion_ratio_s2w": 0,
+	"static_friction_coeffS2S": 0.5,
+	"static_friction_coeffS2W": 0,
+	"verbose": false,
+
+	"psi_T": 32,
+	"psi_L": 16,
+
+	"output_dir": "bouncy_balls_less_damp",
+	"write_mode": "csv"
+}

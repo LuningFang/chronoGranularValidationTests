@@ -95,7 +95,8 @@ int main(int argc, char* argv[]) {
     std::vector<chrono::ChVector<float>> body_points; 
     if (useCheckpointInput == true){
         body_points = loadPositionCheckpoint<float>(argv[2]);
-    }
+		std::cout << "reading position input success from " << argv[2]<<std::endl;
+	}
     else
     {
         chrono::utils::PDSampler<float> sampler(2.1f * params.sphere_radius);
@@ -248,7 +249,7 @@ int main(int argc, char* argv[]) {
             */
         KE = getSystemKE(params, apiSMC, numSpheres);
 
-        std::cout << "time = " << t << ", KE = " << KE * 1E-5 << std::endl;
+        std::cout << ", time = " << t << ", KE = " << KE * 1E-5 << ", max z: " << gran_sys.get_max_z() << std::endl;
 
 
 		

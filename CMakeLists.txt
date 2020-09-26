@@ -9,7 +9,6 @@
 #--------------------------------------------------------------
 
 set(DEMOS
-        demo_GRAN_repose
 				sphere_sliding
 				sphere_sliding_mesh
 				cylinder_compress

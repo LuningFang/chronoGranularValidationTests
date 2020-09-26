@@ -30,12 +30,14 @@
 #include "chrono_granular/physics/ChGranularTriMesh.h"
 #include "chrono/utils/ChUtilsCreators.h"
 #include "chrono_granular/utils/ChGranularJsonParser.h"
+#include "ChGranularDemoUtils.hpp"
 
 using namespace chrono;
 using namespace chrono::granular;
 
 void ShowUsage(std::string name) {
     std::cout << "usage: " + name + " <json_file>" << std::endl;
+    std::cout << "OR " + name + " <json_file> "  + " <input_file> " <<std::endl;
 }
 
 float getMass(sim_param_holder& params){
@@ -67,9 +69,14 @@ float getSystemKE(sim_param_holder &params, ChGranularSMC_API &apiSMC, int numSp
 
 int main(int argc, char* argv[]) {
     sim_param_holder params;
-    if (argc != 2 || ParseJSON(argv[1], params) == false) {
+    bool useCheckpointInput = false;
+
+    if ((argc != 2 && argc != 3) || ParseJSON(argv[1], params) == false){
         ShowUsage(argv[0]);
         return 1;
+    }
+    if (argc == 3 ) {
+        useCheckpointInput = true;
     }
 
     float iteration_step = params.step_size;
@@ -84,19 +91,27 @@ int main(int argc, char* argv[]) {
     double fill_bottom = -params.box_Z / 2.0;
     double fill_top = params.box_Z / 4.0;
 
-    chrono::utils::PDSampler<float> sampler(2.1f * params.sphere_radius);
-
-    ChVector<> hdims(params.box_X / 2 - 2*params.sphere_radius, params.box_Y / 2 - 2*params.sphere_radius, 0);
-    ChVector<> center(0, 0, fill_bottom + 2.0 * params.sphere_radius);
-    std::vector<ChVector<float>> body_points;
-
-    // Shift up for bottom of box
-    while (center.z() < fill_top) {
-        std::cout << "Create layer at " << center.z() << std::endl;
-        auto points = sampler.SampleBox(center, hdims);
-        body_points.insert(body_points.end(), points.begin(), points.end());
-        center.z() += 2.1 * params.sphere_radius;
+    // declar particle positon vector
+    std::vector<chrono::ChVector<float>> body_points; 
+    if (useCheckpointInput == true){
+        body_points = loadPositionCheckpoint<float>(argv[2]);
     }
+    else
+    {
+        chrono::utils::PDSampler<float> sampler(2.1f * params.sphere_radius);
+
+        ChVector<> hdims(params.box_X / 2 - 2*params.sphere_radius, params.box_Y / 2 - 2*params.sphere_radius, 0);
+        ChVector<> center(0, 0, fill_bottom + 2.0 * params.sphere_radius);
+
+        // Shift up for bottom of box
+        while (center.z() < fill_top) {
+            std::cout << "Create layer at " << center.z() << std::endl;
+            auto points = sampler.SampleBox(center, hdims);
+            body_points.insert(body_points.end(), points.begin(), points.end());
+            center.z() += 2.1 * params.sphere_radius;
+        }
+    }
+    
     int numSpheres = body_points.size();
     // apiSMC_TriMesh.setElemsPositions(body_points);
     apiSMC.setElemsPositions(body_points);

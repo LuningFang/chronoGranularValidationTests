@@ -15,6 +15,7 @@ set(DEMOS
         spheres_settling_cylinder
         spheres_settling_box
         balldrop_settling
+        balldrop_impact
 				)
 
 #--------------------------------------------------------------

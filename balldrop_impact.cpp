@@ -11,8 +11,8 @@
 // =============================================================================
 // Authors: Luning Fang
 // =============================================================================
-// Granular material settling in a square container to generate the bed for ball
-// drop test, once settled positions are written
+// Low-velocity impact test of a sphere (mesh) dropped on the a bed of settle
+// granular material
 // =============================================================================
 
 #include <iostream>
@@ -36,7 +36,7 @@ using namespace chrono;
 using namespace chrono::granular;
 
 void ShowUsage(std::string name) {
-    std::cout << "usage: " + name + " <json_file> "  + " <input_file> " <<std::endl;
+    std::cout << "usage: " + name + " <json_file> "  + " <input_file> " + " <projectile density> " + " <drop height> "  <<std::endl;
 }
 
 float getMass(sim_param_holder& params){
@@ -81,7 +81,7 @@ float getMax_Z(std::vector<ChVector<float>> points){
 int main(int argc, char* argv[]) {
     sim_param_holder params;
 
-    if (argc != 3 || ParseJSON(argv[1], params) == false){
+    if (argc != 5 || ParseJSON(argv[1], params) == false){
         ShowUsage(argv[0]);
         return 1;
     }
@@ -97,13 +97,21 @@ int main(int argc, char* argv[]) {
     std::vector<chrono::ChVector<float>> body_points; 
     body_points = loadPositionCheckpoint<float>(argv[2]);
     std::cout << "sucessfully load file from: " << argv[2] << std::endl;
-    float initial_surface = getMax_Z(body_points);
+
+    // parameters for the impact test
+    float rho_sphere = std::stof(argv[3]);
+    float initial_height = std::stof(argv[4]);
+    std::cout << "drop ball density: " << rho_sphere << "g/cm^3, drop height: " << initial_height << "cm. " << std::endl; 
+
+    // TODO: find a better way to describe the surface
+    float initial_surface = getMax_Z(body_points) + params.sphere_radius;
     float initial_volume = params.box_X * params.box_Y * (initial_surface + params.box_Z/2.0f);
     int numSpheres = body_points.size();
     float volume_per_particle = 4.0/3.0 * CH_C_PI * std::pow(params.sphere_radius,3);
     float mass_per_particle = volume_per_particle * params.sphere_density;
 
     float bulk_mass = numSpheres * mass_per_particle;
+    // TODO: cout bulk density and packing frac during settling stage
     float bulk_density = bulk_mass/initial_volume;
     float packing_frac = numSpheres * volume_per_particle / initial_volume;
     std::cout << "highest point at " << initial_surface << "cm" << std::endl;
@@ -111,13 +119,9 @@ int main(int argc, char* argv[]) {
     std::cout << "packing frac is " << packing_frac << std::endl;
     
 
-    // parameters for the impact test
-    float initial_height = 5.0f;
-    float rho_sphere = 0.28;
 
 
     apiSMC_TriMesh.setElemsPositions(body_points);
-
     gran_sys.set_BD_Fixed(true);
 
     gran_sys.set_K_n_SPH2SPH(params.normalStiffS2S);
@@ -148,11 +152,14 @@ int main(int argc, char* argv[]) {
     gran_sys.set_static_friction_coeff_SPH2WALL(params.static_friction_coeffS2W);
     gran_sys.set_static_friction_coeff_SPH2MESH(params.static_friction_coeffS2M);
 
-    //gran_sys.set_rolling_coeff_SPH2SPH(params.rolling_friction_coeffS2S);
-    //gran_sys.set_rolling_coeff_SPH2WALL(params.rolling_friction_coeffS2W);
-    //gran_sys.set_rolling_coeff_SPH2MESH(params.rolling_friction_coeffS2M);
+    // somehow setting rolling friction make the result less accurate
+    // float mu_roll = 0.05;
+    // gran_sys.set_rolling_mode(GRAN_ROLLING_MODE::SCHWARTZ);
+    // gran_sys.set_rolling_coeff_SPH2SPH(mu_roll);
+    // gran_sys.set_rolling_coeff_SPH2WALL(mu_roll);
+    // gran_sys.set_rolling_coeff_SPH2MESH(mu_roll);
 
-    std::string mesh_filename("data/sphere.obj");
+    std::string mesh_filename("data/balldrop/sphere.obj");
     std::vector<string> mesh_filenames(1, mesh_filename);
 
     float ball_radius = 1.27f;
@@ -167,7 +174,8 @@ int main(int argc, char* argv[]) {
 
     gran_sys.setOutputMode(params.write_mode);
     gran_sys.setVerbose(params.verbose);
-    filesystem::create_directory(filesystem::path(params.output_dir));
+
+    filesystem::create_directory(filesystem::path(params.output_dir+"_rho_"+argv[3]+"_height_"+argv[4]));
 
     unsigned int nSoupFamilies = gran_sys.getNumTriangleFamilies();
     std::cout << nSoupFamilies << " soup families" << std::endl;
@@ -190,13 +198,12 @@ int main(int argc, char* argv[]) {
     ball_body->SetInertiaXX(ChVector<>(inertia, inertia, inertia));
     ball_body->SetPos(ball_initial_pos);
     sys_ball.AddBody(ball_body);
-    unsigned int out_fps = 50;
-    std::cout << "Rendering at " << out_fps << "FPS" << std::endl;
 
-    unsigned int out_steps = (unsigned int)(1.0 / (out_fps * iteration_step));
 
     int currframe = 0;
     unsigned int curr_step = 0;
+    int frame_output_freq = 100; // write position info every 100 time steps
+    int cout_freq = 10; // cout info every 10 time steps
 
     clock_t start = std::clock();
     for (double t = 0; t < (double)params.time_end; t += iteration_step, curr_step++) {
@@ -233,23 +240,25 @@ int main(int argc, char* argv[]) {
         ball_body->Empty_forces_accumulators();
         ball_body->Accumulate_force(ChVector<>(ball_force[0], ball_force[1], ball_force[2]), ball_pos, false);
         ball_body->Accumulate_torque(ChVector<>(ball_force[3], ball_force[4], ball_force[5]), false);
-        float KE;
-        float penetration_d;
-        if (curr_step % out_steps == 0) {
-            std::cout << "frame " << currframe;
-            char filename[100];
-            sprintf(filename, "%s/step%06d", params.output_dir.c_str(), currframe++);
-            gran_sys.writeFile(std::string(filename));
-            gran_sys.write_meshes(std::string(filename));
 
-            KE = getSystemKE(params, apiSMC_TriMesh, numSpheres);
+        float KE = getSystemKE(params, apiSMC_TriMesh, numSpheres);
+        float penetration_d = initial_surface - ball_pos.z() + ball_radius;
+        float KE_threshold = 1.0f;
 
-            penetration_d = initial_surface - ball_pos.y() + ball_radius;
+        // only output info when the ball is impacting the granular material
+        if (KE >= KE_threshold && penetration_d > 0){
+            if (curr_step % frame_output_freq == 0) {
+                char filename[100];
+                sprintf(filename, "%s/step%06d", params.output_dir.c_str(), currframe++);
+                gran_sys.writeFile(std::string(filename));
+                gran_sys.write_meshes(std::string(filename));
+            }
 
-            std::cout << ", t = " << t << ", KE = " << KE * 1E-5 << ", pene_d = " << penetration_d << ", dropH = " << initial_height + penetration_d << std::endl;
+            if (curr_step % cout_freq == 0){
+                printf("t=%f, KE=%e J, penetration_d = %e cm, dropHeight H = %e cm\n", t, KE*1E-5, penetration_d, initial_height + penetration_d);
+            }
+        }
 
-		
-		}
     }
 
     clock_t end = std::clock();

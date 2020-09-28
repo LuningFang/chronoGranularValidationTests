@@ -175,7 +175,9 @@ int main(int argc, char* argv[]) {
     gran_sys.setOutputMode(params.write_mode);
     gran_sys.setVerbose(params.verbose);
 
-    filesystem::create_directory(filesystem::path(params.output_dir+"_rho_"+argv[3]+"_height_"+argv[4]));
+    params.output_dir = params.output_dir+"_rho_"+argv[3]+"_height_"+argv[4]);
+
+    filesystem::create_directory(filesystem::path(params.output_dir);
 
     unsigned int nSoupFamilies = gran_sys.getNumTriangleFamilies();
     std::cout << nSoupFamilies << " soup families" << std::endl;
@@ -243,10 +245,10 @@ int main(int argc, char* argv[]) {
 
         float KE = getSystemKE(params, apiSMC_TriMesh, numSpheres);
         float penetration_d = initial_surface - ball_pos.z() + ball_radius;
-        float KE_threshold = 1.0f;
+        float KE_threshold = 0.1f;
 
         // only output info when the ball is impacting the granular material
-        if (KE >= KE_threshold && penetration_d > 0){
+        if (penetration_d > 0){
             if (curr_step % frame_output_freq == 0) {
                 char filename[100];
                 sprintf(filename, "%s/step%06d", params.output_dir.c_str(), currframe++);

@@ -66,7 +66,7 @@ float getSystemKE(sim_param_holder &params, ChGranularChronoTriMeshAPI &apiSMC, 
     return sysKE;
 }
 
-// get maximum point in granular material
+// get maximum point in granular materialr4w   
 float getMax_Z(std::vector<ChVector<float>> points){
     float max_z = -1000.0f;
     float pos_z;
@@ -159,6 +159,7 @@ int main(int argc, char* argv[]) {
     // gran_sys.set_rolling_coeff_SPH2WALL(mu_roll);
     // gran_sys.set_rolling_coeff_SPH2MESH(mu_roll);
 
+
     std::string mesh_filename("data/balldrop/sphere.obj");
     std::vector<string> mesh_filenames(1, mesh_filename);
 
@@ -175,9 +176,9 @@ int main(int argc, char* argv[]) {
     gran_sys.setOutputMode(params.write_mode);
     gran_sys.setVerbose(params.verbose);
 
-    params.output_dir = params.output_dir+"_rho_"+argv[3]+"_height_"+argv[4]);
+    params.output_dir = params.output_dir+"_rho_"+argv[3]+"_height_"+argv[4];
 
-    filesystem::create_directory(filesystem::path(params.output_dir);
+    filesystem::create_directory(filesystem::path(params.output_dir));
 
     unsigned int nSoupFamilies = gran_sys.getNumTriangleFamilies();
     std::cout << nSoupFamilies << " soup families" << std::endl;

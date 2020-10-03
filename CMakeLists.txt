@@ -16,6 +16,7 @@ set(DEMOS
         spheres_settling_box
         balldrop_settling
         balldrop_impact
+        low_velo_impact_settling
 				)
 
 #--------------------------------------------------------------

@@ -17,6 +17,8 @@ set(DEMOS
         balldrop_settling
         balldrop_impact
         low_velo_impact_settling
+        low_velo_impact
+        wave_propagation
 				)
 
 #--------------------------------------------------------------

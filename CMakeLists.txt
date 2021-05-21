@@ -18,8 +18,7 @@ set(DEMOS
         balldrop_impact
         low_velo_impact_settling
         low_velo_impact
-        wave_propagation
-				)
+		)
 
 #--------------------------------------------------------------
 # Find the Chrono package with required and optional components

@@ -5,6 +5,7 @@
 
 #include "chrono/core/ChVector.h"
 
+
 void tokenizeCSVLine(std::ifstream& istream, std::vector<float>& data) {
     std::string line;
     std::getline(istream, line);  // load in current line
@@ -40,4 +41,3 @@ std::vector<chrono::ChVector<T>> loadPositionCheckpoint(std::string infile) {
 
     return sphere_positions;
 }
-// load sphere positions from a checkpoint file

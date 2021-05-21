@@ -11,8 +11,8 @@
 // =============================================================================
 // Authors: Luning Fang
 // =============================================================================
-// Granular material settling in a square container to generate the bed for ball
-// drop test, once settled positions are written
+// Granular material settling in a square container to generate the bedding for 
+// balldrop test, once settled positions are written
 // =============================================================================
 
 #include <iostream>
@@ -40,23 +40,23 @@ void ShowUsage(std::string name) {
     std::cout << "OR " + name + " <json_file> "  + " <input_file> " <<std::endl;
 }
 
-float getMass(sim_param_holder& params){
-    float rad = params.sphere_radius;
-    float density = params.sphere_density;
+double getMass(sim_param_holder& params){
+    double rad = params.sphere_radius;
+    double density = params.sphere_density;
 
-    float volume = 4.0f/3.0f * CH_C_PI * std::pow(rad, 3);
-    float mass = volume * density;
+    double volume = 4.0f/3.0f * CH_C_PI * std::pow(rad, 3);
+    double mass = volume * density;
     return mass;
 }
 
 // calculate kinetic energy of the system
-float getSystemKE(sim_param_holder &params, ChGranularSMC_API &apiSMC, int numSpheres){
-    float sysKE = 0.0f;
-    float sphere_KE;
+double getSystemKE(sim_param_holder &params, ChGranularSMC_API &apiSMC, int numSpheres){
+    double sysKE = 0.0f;
+    double sphere_KE;
     ChVector<float> angularVelo;
     ChVector<float> velo;
-    float mass = getMass(params);
-    float inertia = 0.4f * mass * std::pow(params.sphere_radius,2);
+    double mass = getMass(params);
+    double inertia = 0.4f * mass * std::pow(params.sphere_radius,2);
 
     for (int i = 0; i < numSpheres; i++){
         angularVelo = apiSMC.getAngularVelo(i);
@@ -114,30 +114,23 @@ int main(int argc, char* argv[]) {
     }
     
     int numSpheres = body_points.size();
-    // apiSMC_TriMesh.setElemsPositions(body_points);
     apiSMC.setElemsPositions(body_points);
 
     gran_sys.set_BD_Fixed(true);
 
     gran_sys.set_K_n_SPH2SPH(params.normalStiffS2S);
     gran_sys.set_K_n_SPH2WALL(params.normalStiffS2W);
-    // gran_sys.set_K_n_SPH2MESH(params.normalStiffS2M);
 
     gran_sys.set_Gamma_n_SPH2SPH(params.normalDampS2S);
     gran_sys.set_Gamma_n_SPH2WALL(params.normalDampS2W);
-    // gran_sys.set_Gamma_n_SPH2MESH(params.normalDampS2M);
 
     gran_sys.set_K_t_SPH2SPH(params.tangentStiffS2S);
     gran_sys.set_K_t_SPH2WALL(params.tangentStiffS2W);
-    // gran_sys.set_K_t_SPH2MESH(params.tangentStiffS2M);
 
     gran_sys.set_Gamma_t_SPH2SPH(params.tangentDampS2S);
     gran_sys.set_Gamma_t_SPH2WALL(params.tangentDampS2W);
-    // gran_sys.set_Gamma_t_SPH2MESH(params.tangentDampS2M);
 
     gran_sys.set_Cohesion_ratio(params.cohesion_ratio);
-    // gran_sys.set_Adhesion_ratio_S2M(params.adhesion_ratio_s2m);
-    gran_sys.set_Adhesion_ratio_S2W(params.adhesion_ratio_s2w);
     gran_sys.set_gravitational_acceleration(params.grav_X, params.grav_Y, params.grav_Z);
 
     gran_sys.set_fixed_stepSize(params.step_size);
@@ -145,49 +138,13 @@ int main(int argc, char* argv[]) {
     gran_sys.set_timeIntegrator(GRAN_TIME_INTEGRATOR::CENTERED_DIFFERENCE);
     gran_sys.set_static_friction_coeff_SPH2SPH(params.static_friction_coeffS2S);
     gran_sys.set_static_friction_coeff_SPH2WALL(params.static_friction_coeffS2W);
-    // gran_sys.set_static_friction_coeff_SPH2MESH(params.static_friction_coeffS2M);
-
-    //gran_sys.set_rolling_coeff_SPH2SPH(params.rolling_friction_coeffS2S);
-    //gran_sys.set_rolling_coeff_SPH2WALL(params.rolling_friction_coeffS2W);
-    //gran_sys.set_rolling_coeff_SPH2MESH(params.rolling_friction_coeffS2M);
-
-    // std::string mesh_filename(GetChronoDataFile("granular/demo_GRAN_ballcosim/sphere.obj"));
-    // std::vector<string> mesh_filenames(1, mesh_filename);
-    // std::vector<float3> mesh_translations(1, make_float3(0.f, 0.f, 0.f));
-    // float ball_radius = 20.f;
-    // std::vector<ChMatrix33<float>> mesh_rotscales(1, ChMatrix33<float>(ball_radius));
-    // float ball_density = params.sphere_density;
-
-    // float ball_mass = (float)(4.f * CH_C_PI * ball_radius * ball_radius * ball_radius * ball_density / 3.f);
-    // std::vector<float> mesh_masses(1, ball_mass);
-
-    // apiSMC_TriMesh.load_meshes(mesh_filenames, mesh_rotscales, mesh_translations, mesh_masses);
 
     gran_sys.setOutputMode(params.write_mode);
     gran_sys.setVerbose(params.verbose);
     filesystem::create_directory(filesystem::path(params.output_dir));
 
-    // unsigned int nSoupFamilies = gran_sys.getNumTriangleFamilies();
-    // std::cout << nSoupFamilies << " soup families" << std::endl;
-    // double* meshPosRot = new double[7 * nSoupFamilies];
-    // float* meshVel = new float[6 * nSoupFamilies]();
-
     gran_sys.initialize();
 
-    // Create rigid ball_body simulation
-    // ChSystemSMC sys_ball;
-    // sys_ball.SetContactForceModel(ChSystemSMC::ContactForceModel::Hooke); // this need to be consistent with the granular bed
-    // sys_ball.SetTimestepperType(ChTimestepper::Type::EULER_IMPLICIT);
-    // sys_ball.Set_G_acc(ChVector<>(0, 0, -980));
-
-    // double inertia = 2.0 / 5.0 * ball_mass * ball_radius * ball_radius;
-    // ChVector<> ball_initial_pos(0, 0, fill_top + ball_radius + 2 * params.sphere_radius);
-
-    // std::shared_ptr<ChBody> ball_body(sys_ball.NewBody());
-    // ball_body->SetMass(ball_mass);
-    // ball_body->SetInertiaXX(ChVector<>(inertia, inertia, inertia));
-    // ball_body->SetPos(ball_initial_pos);
-    // sys_ball.AddBody(ball_body);
     unsigned int out_fps = 50;
     std::cout << "Rendering at " << out_fps << "FPS" << std::endl;
 
@@ -197,61 +154,20 @@ int main(int argc, char* argv[]) {
     unsigned int curr_step = 0;
 
     clock_t start = std::clock();
+    char filename[100];
+
     for (double t = 0; t < (double)params.time_end; t += iteration_step, curr_step++) {
-        // auto ball_pos = ball_body->GetPos();
-        // auto ball_rot = ball_body->GetRot();
-
-        // auto ball_vel = ball_body->GetPos_dt();
-        // auto ball_ang_vel = ball_body->GetWvel_loc();
-        // ball_ang_vel = ball_body->GetRot().GetInverse().Rotate(ball_ang_vel);
-
-        // meshPosRot[0] = ball_pos.x();
-        // meshPosRot[1] = ball_pos.y();
-        // meshPosRot[2] = ball_pos.z();
-        // meshPosRot[3] = ball_rot[0];
-        // meshPosRot[4] = ball_rot[1];
-        // meshPosRot[5] = ball_rot[2];
-        // meshPosRot[6] = ball_rot[3];
-
-        // meshVel[0] = (float)ball_vel.x();
-        // meshVel[1] = (float)ball_vel.y();
-        // meshVel[2] = (float)ball_vel.z();
-        // meshVel[3] = (float)ball_ang_vel.x();
-        // meshVel[4] = (float)ball_ang_vel.y();
-        // meshVel[5] = (float)ball_ang_vel.z();
-
-        // gran_sys.meshSoup_applyRigidBodyMotion(meshPosRot, meshVel);
 
         gran_sys.advance_simulation(iteration_step);
-        // sys_ball.DoStepDynamics(iteration_step);
 
-        // float ball_force[6];
-        // gran_sys.collectGeneralizedForcesOnMeshSoup(ball_force);
-
-        // ball_body->Empty_forces_accumulators();
-        // ball_body->Accumulate_force(ChVector<>(ball_force[0], ball_force[1], ball_force[2]), ball_pos, false);
-        // ball_body->Accumulate_torque(ChVector<>(ball_force[3], ball_force[4], ball_force[5]), false);
-        float KE;
+        double KE;
         if (curr_step % out_steps == 0) {
             std::cout << "Rendering frame " << currframe;
-            char filename[100];
             sprintf(filename, "%s/step%06d", params.output_dir.c_str(), currframe++);
             gran_sys.writeFile(std::string(filename));
-            // gran_sys.write_meshes(std::string(filename));
+            KE = getSystemKE(params, apiSMC, numSpheres);
 
-            /*  // disable meshframes output, for it may be confusing for users dealing with C::Granular only
-            std::string mesh_output = std::string(filename) + "_meshframes.csv";
-            std::ofstream meshfile(mesh_output);
-            std::ostringstream outstream;
-            outstream << "mesh_name,dx,dy,dz,x1,x2,x3,y1,y2,y3,z1,z2,z3,sx,sy,sz\n";
-            writeMeshFrames(outstream, *ball_body, mesh_filename, ball_radius);
-            meshfile << outstream.str();
-            */
-        KE = getSystemKE(params, apiSMC, numSpheres);
-
-        std::cout << ", time = " << t << ", KE = " << KE * 1E-5 << ", max z: " << gran_sys.get_max_z() << std::endl;
-
-
+            std::cout << ", time = " << t << ", KE = " << KE * 1E-5 << " J, max z: " << gran_sys.get_max_z() << " cm" << std::endl;
 		
 		}
     }
@@ -260,9 +176,8 @@ int main(int argc, char* argv[]) {
     double total_time = ((double)(end - start)) / CLOCKS_PER_SEC;
 
     std::cout << "Time: " << total_time << " seconds" << std::endl;
-
-    // delete[] meshPosRot;
-    // delete[] meshVel;
+    sprintf(filename, "%s/settled", params.output_dir.c_str());
+    gran_sys.writeFile(std::string(filename));
 
     return 0;
 }

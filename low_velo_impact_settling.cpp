@@ -138,7 +138,7 @@ int main(int argc, char* argv[]) {
 
     gran_sys.initialize();
 
-    unsigned int out_fps = 5;
+    unsigned int out_fps = 500;
     std::cout << "Rendering at " << out_fps << "FPS" << std::endl;
 
     unsigned int out_steps = (unsigned int)(1.0 / (out_fps * iteration_step));
@@ -157,9 +157,9 @@ int main(int argc, char* argv[]) {
 		}
     }
 
-    char filename[100];
-    sprintf(filename, "%s/step%06d", params.output_dir.c_str(), currframe++);
-    gran_sys.writeFile(std::string(filename));
+		    char filename[100];
+		    sprintf(filename, "%s/step%06d", params.output_dir.c_str(), currframe++);
+		    gran_sys.writeFile(std::string(filename));
 
 
     clock_t end = std::clock();

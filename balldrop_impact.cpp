@@ -39,23 +39,23 @@ void ShowUsage(std::string name) {
     std::cout << "usage: " + name + " <json_file> "  + " <input_file> " + " <projectile density> " + " <drop height> "  <<std::endl;
 }
 
-float getMass(sim_param_holder& params){
-    float rad = params.sphere_radius;
-    float density = params.sphere_density;
+double getMass(sim_param_holder& params){
+    double rad = params.sphere_radius;
+    double density = params.sphere_density;
 
-    float volume = 4.0f/3.0f * CH_C_PI * std::pow(rad, 3);
-    float mass = volume * density;
+    double volume = 4.0f/3.0f * CH_C_PI * std::pow(rad, 3);
+    double mass = volume * density;
     return mass;
 }
 
 // calculate kinetic energy of the system
-float getSystemKE(sim_param_holder &params, ChGranularChronoTriMeshAPI &apiSMC, int numSpheres){
-    float sysKE = 0.0f;
-    float sphere_KE;
+double getSystemKE(sim_param_holder &params, ChGranularChronoTriMeshAPI &apiSMC, int numSpheres){
+    double sysKE = 0.0f;
+    double sphere_KE;
     ChVector<float> angularVelo;
     ChVector<float> velo;
-    float mass = getMass(params);
-    float inertia = 0.4f * mass * std::pow(params.sphere_radius,2);
+    double mass = getMass(params);
+    double inertia = 0.4f * mass * std::pow(params.sphere_radius,2);
 
     for (int i = 0; i < numSpheres; i++){
         angularVelo = apiSMC.getAngularVelo(i);
@@ -67,9 +67,9 @@ float getSystemKE(sim_param_holder &params, ChGranularChronoTriMeshAPI &apiSMC, 
 }
 
 // get maximum point in granular materialr4w   
-float getMax_Z(std::vector<ChVector<float>> points){
-    float max_z = -1000.0f;
-    float pos_z;
+double getMax_Z(std::vector<ChVector<float>> points){
+    double max_z = -1000.0f;
+    double pos_z;
     for (int i = 0; i < points.size(); i++){
         pos_z = points.at(i).z();
         if (pos_z > max_z)
